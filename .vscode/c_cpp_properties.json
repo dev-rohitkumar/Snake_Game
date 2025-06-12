@@ -1,0 +1,15 @@
+{
+  "configurations": [
+    {
+      "name": "Win64",
+      "includePath": [
+        "D:/Mastering_in_DSA/Game/SFML-2.6.1/include"
+      ],
+      "compilerPath": "C:/mingw64/bin/g++.exe",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-x64"
+    }
+  ],
+  "version": 4
+}

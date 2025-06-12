@@ -1,0 +1,16 @@
+{
+  "code-runner.executorMap": {
+    "cpp": "g++ main.cpp -o bin/snake.exe -ID:/Mastering_in_DSA/Game/SFML-2.6.1/include -LD:/Mastering_in_DSA/Game/SFML-2.6.1/lib -lsfml-graphics -lsfml-window -lsfml-system && bin/snake.exe"
+  },
+  "code-runner.runInTerminal": true,
+  "C_Cpp.default.compilerPath": "C:/mingw64/bin/g++.exe",
+  "C_Cpp.default.includePath": [
+    "D:/Mastering_in_DSA/Game/SFML-2.6.1/include"
+  ],
+  "C_Cpp.default.intelliSenseMode": "gcc-x64",
+  "C_Cpp.default.cppStandard": "c++17",
+  "files.associations": {
+    "*.dbclient-js": "javascript",
+    "cmath": "cpp"
+  }
+}
