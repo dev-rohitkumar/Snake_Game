@@ -15,6 +15,7 @@ struct SnakeSegment {
 };
 
 enum Direction { Up, Down, Left, Right };
+enum GameState { MENU, PLAYING, PAUSED, GAMEOVER };
 
 class Snake {
 public:
@@ -112,10 +113,10 @@ sf::Vector2i generateFoodPosition(const Snake& snake) {
 int main() {
     srand(static_cast<unsigned>(time(nullptr)));
 
-    setupWalls(); // Add this
+    setupWalls();
 
     sf::RenderWindow window(sf::VideoMode(width, height), "Snake Game");
-    int baseSpeed = 5; // starting speed
+    int baseSpeed = 5;
 
     Snake snake;
     sf::Vector2i food = generateFoodPosition(snake);
@@ -126,14 +127,25 @@ int main() {
     sf::RectangleShape foodBlock(sf::Vector2f(blockSize - 2, blockSize - 2));
     foodBlock.setFillColor(sf::Color::Red);
 
-    // Wall block
     sf::RectangleShape wallBlock(sf::Vector2f(blockSize - 2, blockSize - 2));
     wallBlock.setFillColor(sf::Color(100, 100, 100));
 
     sf::Font font;
-    if (!font.loadFromFile("consolas.ttf")) { // Use a font you have
+    if (!font.loadFromFile("consolas.ttf")) {
         return -1;
     }
+
+    sf::Text menuText;
+    menuText.setFont(font);
+    menuText.setCharacterSize(40);
+    menuText.setFillColor(sf::Color::White);
+    menuText.setString("SNAKE GAME\n\nPress ENTER to Start");
+
+    sf::Text pauseText;
+    pauseText.setFont(font);
+    pauseText.setCharacterSize(40);
+    pauseText.setFillColor(sf::Color::Yellow);
+    pauseText.setString("PAUSED\nPress Space to Resume");
 
     sf::Text gameOverText;
     gameOverText.setFont(font);
@@ -141,23 +153,21 @@ int main() {
     gameOverText.setFillColor(sf::Color::White);
     gameOverText.setString("Game Over!\nPress Enter to Restart");
 
-    // Score and history
     int score = 0;
-    int highScore = 0; // Add this
+    int highScore = 0;
     std::stack<int> scoreHistory;
     sf::Text scoreText;
     scoreText.setFont(font);
     scoreText.setCharacterSize(24);
     scoreText.setFillColor(sf::Color::Yellow);
 
-    // Add high score text
     sf::Text highScoreText;
     highScoreText.setFont(font);
     highScoreText.setCharacterSize(24);
     highScoreText.setFillColor(sf::Color::Green);
-    highScoreText.setPosition(10, 40); // Below the score
+    highScoreText.setPosition(10, 40);
 
-    bool gameOver = false;
+    GameState state = MENU;
 
     while (window.isOpen()) {
         sf::Event event;
@@ -165,26 +175,32 @@ int main() {
             if (event.type == sf::Event::Closed)
                 window.close();
 
-            if (!gameOver && event.type == sf::Event::KeyPressed) {
+            if (state == MENU && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter) {
+                // Start game
+                snake = Snake();
+                food = generateFoodPosition(snake);
+                score = 0;
+                state = PLAYING;
+            }
+            else if (state == PLAYING && event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Up && snake.dir != Down) snake.dir = Up;
                 else if (event.key.code == sf::Keyboard::Down && snake.dir != Up) snake.dir = Down;
                 else if (event.key.code == sf::Keyboard::Left && snake.dir != Right) snake.dir = Left;
                 else if (event.key.code == sf::Keyboard::Right && snake.dir != Left) snake.dir = Right;
+                else if (event.key.code == sf::Keyboard::Space) state = PAUSED;
             }
-            if (gameOver && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter) {
-                snake = Snake();
-                food = generateFoodPosition(snake);
-                gameOver = false;
-                score = 0;
+            else if (state == PAUSED && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space) {
+                state = PLAYING;
+            }
+            else if (state == GAMEOVER && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter) {
+                state = MENU;
             }
         }
 
-        if (!gameOver) {
-            // Optionally, increase speed as score increases
-            int newSpeed = baseSpeed + score / 5; // Increase speed every 5 points
+        if (state == PLAYING) {
+            int newSpeed = baseSpeed + score / 5;
             window.setFramerateLimit(newSpeed);
 
-            // Move snake
             SnakeSegment nextHead = snake.body.front();
             switch (snake.dir) {
                 case Up: nextHead.y--; break;
@@ -192,68 +208,70 @@ int main() {
                 case Left: nextHead.x--; break;
                 case Right: nextHead.x++; break;
             }
-            // Check wall collision
             if (nextHead.x < 0 || nextHead.y < 0 || nextHead.x >= gridCols || nextHead.y >= gridRows || wallGrid[nextHead.y][nextHead.x]) {
-                gameOver = true;
-                // On game over, update high score if needed
-                if (score > highScore) {
-                    highScore = score;
-                }
+                if (score > highScore) highScore = score;
                 scoreHistory.push(score);
+                state = GAMEOVER;
             } else {
                 snake.move();
-                // Eat food
                 if (snake.body.front().x == food.x && snake.body.front().y == food.y) {
                     snake.grow();
                     food = generateFoodPosition(snake);
                     score++;
                 }
-                // Self collision
                 if (snake.checkCollision()) {
-                    gameOver = true;
+                    if (score > highScore) highScore = score;
                     scoreHistory.push(score);
+                    state = GAMEOVER;
                 }
             }
         }
 
         window.clear();
 
-        // Draw walls
-        for (int y = 0; y < gridRows; ++y) {
-            for (int x = 0; x < gridCols; ++x) {
-                if (wallGrid[y][x]) {
-                    wallBlock.setPosition(x * blockSize, y * blockSize);
-                    window.draw(wallBlock);
+        if (state == MENU) {
+            menuText.setPosition(width / 2.f - 200, height / 2.f - 100);
+            window.draw(menuText);
+        }
+        else if (state == PLAYING || state == PAUSED || state == GAMEOVER) {
+            // Draw walls
+            for (int y = 0; y < gridRows; ++y) {
+                for (int x = 0; x < gridCols; ++x) {
+                    if (wallGrid[y][x]) {
+                        wallBlock.setPosition(x * blockSize, y * blockSize);
+                        window.draw(wallBlock);
+                    }
                 }
             }
+            // Draw snake
+            for (const auto& segment : snake.body) {
+                block.setPosition(segment.x * blockSize, segment.y * blockSize);
+                window.draw(block);
+            }
+            // Draw food
+            foodBlock.setPosition(food.x * blockSize, food.y * blockSize);
+            window.draw(foodBlock);
+            // Draw score
+            scoreText.setString("Score: " + std::to_string(score));
+            scoreText.setPosition(10, 10);
+            window.draw(scoreText);
+            // Draw high score
+            highScoreText.setString("High Score: " + std::to_string(highScore));
+            window.draw(highScoreText);
         }
 
-        // Draw snake
-        for (const auto& segment : snake.body) {
-            block.setPosition(segment.x * blockSize, segment.y * blockSize);
-            window.draw(block);
+        if (state == PAUSED) {
+            pauseText.setPosition(width / 2.f - 100, height / 2.f - 50);
+            window.draw(pauseText);
         }
 
-        // Draw food
-        foodBlock.setPosition(food.x * blockSize, food.y * blockSize);
-        window.draw(foodBlock);
-
-        // Draw score
-        scoreText.setString("Score: " + std::to_string(score));
-        scoreText.setPosition(10, 10);
-        window.draw(scoreText);
-
-        // Draw high score
-        highScoreText.setString("High Score: " + std::to_string(highScore));
-        window.draw(highScoreText);
-
-        if (gameOver) {
+        if (state == GAMEOVER) {
             gameOverText.setPosition(width / 2.f - 180, height / 2.f - 50);
             window.draw(gameOverText);
 
             // Show last 5 scores
             sf::Text histText;
-            histText.setFont(font); // Make sure font is loaded!
+            histText.setFont(font);
             histText.setCharacterSize(20);
             histText.setFillColor(sf::Color::Cyan);
             histText.setPosition(width / 2.f - 100, height / 2.f + 50);
@@ -261,7 +279,7 @@ int main() {
             std::stack<int> temp = scoreHistory;
             std::string histStr = "Last Scores:\n";
             int count = 0;
-            while (!temp.empty() && count < 10) {
+            while (!temp.empty() && count < 5) {
                 histStr += std::to_string(temp.top()) + "\n";
                 temp.pop();
                 count++;
