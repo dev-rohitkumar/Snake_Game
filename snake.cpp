@@ -2,6 +2,7 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <stack> // Add this
 
 // Size of each block in the snake and food
 const int blockSize = 20;
@@ -65,29 +66,56 @@ public:
     }
 };
 
+// Add wall grid
+const int gridCols = width / blockSize;
+const int gridRows = height / blockSize;
+std::vector<std::vector<bool>> wallGrid(gridRows, std::vector<bool>(gridCols, false));
+
+// Example: Add a border wall
+void setupWalls() {
+    for (int i = 0; i < gridCols; ++i) {
+        wallGrid[0][i] = true;
+        wallGrid[gridRows-1][i] = true;
+    }
+    for (int i = 0; i < gridRows; ++i) {
+        wallGrid[i][0] = true;
+        wallGrid[i][gridCols-1] = true;
+    }
+    // You can add more wall patterns here for levels
+}
+
+// Modified food generation to avoid walls
 sf::Vector2i generateFoodPosition(const Snake& snake) {
     sf::Vector2i pos;
-    bool onSnake;
+    bool invalid;
     do {
-        onSnake = false;
-        pos.x = rand() % (width / blockSize);
-        pos.y = rand() % (height / blockSize);
+        invalid = false;
+        pos.x = rand() % gridCols;
+        pos.y = rand() % gridRows;
 
+        // Check wall
+        if (wallGrid[pos.y][pos.x]) {
+            invalid = true;
+            continue;
+        }
+        // Check snake
         for (const auto& segment : snake.body) {
             if (segment.x == pos.x && segment.y == pos.y) {
-                onSnake = true;
+                invalid = true;
                 break;
             }
         }
-    } while (onSnake);
+    } while (invalid);
     return pos;
 }
 
 int main() {
     srand(static_cast<unsigned>(time(nullptr)));
 
+    setupWalls(); // Add this
+
     sf::RenderWindow window(sf::VideoMode(width, height), "Snake Game");
-    window.setFramerateLimit(10);
+    int baseSpeed = 5; // starting speed
 
     Snake snake;
     sf::Vector2i food = generateFoodPosition(snake);
@@ -98,8 +126,12 @@ int main() {
     sf::RectangleShape foodBlock(sf::Vector2f(blockSize - 2, blockSize - 2));
     foodBlock.setFillColor(sf::Color::Red);
 
+    // Wall block
+    sf::RectangleShape wallBlock(sf::Vector2f(blockSize - 2, blockSize - 2));
+    wallBlock.setFillColor(sf::Color(100, 100, 100));
+
     sf::Font font;
-    if (!font.loadFromFile("D:/Mastering_in_DSA/Game/SFML-2.6.1/examples/resources/sansation.ttf")) {
+    if (!font.loadFromFile("consolas.ttf")) { // Use a font you have
         return -1;
     }
 
@@ -108,6 +140,22 @@ int main() {
     gameOverText.setCharacterSize(40);
     gameOverText.setFillColor(sf::Color::White);
     gameOverText.setString("Game Over!\nPress Enter to Restart");
+
+    // Score and history
+    int score = 0;
+    int highScore = 0; // Add this
+    std::stack<int> scoreHistory;
+    sf::Text scoreText;
+    scoreText.setFont(font);
+    scoreText.setCharacterSize(24);
+    scoreText.setFillColor(sf::Color::Yellow);
+
+    // Add high score text
+    sf::Text highScoreText;
+    highScoreText.setFont(font);
+    highScoreText.setCharacterSize(24);
+    highScoreText.setFillColor(sf::Color::Green);
+    highScoreText.setPosition(10, 40); // Below the score
 
     bool gameOver = false;
 
@@ -127,23 +175,58 @@ int main() {
                 snake = Snake();
                 food = generateFoodPosition(snake);
                 gameOver = false;
+                score = 0;
             }
         }
 
         if (!gameOver) {
-            snake.move();
+            // Optionally, increase speed as score increases
+            int newSpeed = baseSpeed + score / 5; // Increase speed every 5 points
+            window.setFramerateLimit(newSpeed);
 
-            if (snake.body.front().x == food.x && snake.body.front().y == food.y) {
-                snake.grow();
-                food = generateFoodPosition(snake);
+            // Move snake
+            SnakeSegment nextHead = snake.body.front();
+            switch (snake.dir) {
+                case Up: nextHead.y--; break;
+                case Down: nextHead.y++; break;
+                case Left: nextHead.x--; break;
+                case Right: nextHead.x++; break;
             }
-
-            if (snake.checkCollision()) {
+            // Check wall collision
+            if (nextHead.x < 0 || nextHead.y < 0 || nextHead.x >= gridCols || nextHead.y >= gridRows || wallGrid[nextHead.y][nextHead.x]) {
                 gameOver = true;
+                // On game over, update high score if needed
+                if (score > highScore) {
+                    highScore = score;
+                }
+                scoreHistory.push(score);
+            } else {
+                snake.move();
+                // Eat food
+                if (snake.body.front().x == food.x && snake.body.front().y == food.y) {
+                    snake.grow();
+                    food = generateFoodPosition(snake);
+                    score++;
+                }
+                // Self collision
+                if (snake.checkCollision()) {
+                    gameOver = true;
+                    scoreHistory.push(score);
+                }
             }
         }
 
         window.clear();
+
+        // Draw walls
+        for (int y = 0; y < gridRows; ++y) {
+            for (int x = 0; x < gridCols; ++x) {
+                if (wallGrid[y][x]) {
+                    wallBlock.setPosition(x * blockSize, y * blockSize);
+                    window.draw(wallBlock);
+                }
+            }
+        }
 
         // Draw snake
         for (const auto& segment : snake.body) {
@@ -155,9 +238,36 @@ int main() {
         foodBlock.setPosition(food.x * blockSize, food.y * blockSize);
         window.draw(foodBlock);
 
+        // Draw score
+        scoreText.setString("Score: " + std::to_string(score));
+        scoreText.setPosition(10, 10);
+        window.draw(scoreText);
+
+        // Draw high score
+        highScoreText.setString("High Score: " + std::to_string(highScore));
+        window.draw(highScoreText);
+
         if (gameOver) {
             gameOverText.setPosition(width / 2.f - 180, height / 2.f - 50);
             window.draw(gameOverText);
+
+            // Show last 5 scores
+            sf::Text histText;
+            histText.setFont(font); // Make sure font is loaded!
+            histText.setCharacterSize(20);
+            histText.setFillColor(sf::Color::Cyan);
+            histText.setPosition(width / 2.f - 100, height / 2.f + 50);
+
+            std::stack<int> temp = scoreHistory;
+            std::string histStr = "Last Scores:\n";
+            int count = 0;
+            while (!temp.empty() && count < 10) {
+                histStr += std::to_string(temp.top()) + "\n";
+                temp.pop();
+                count++;
+            }
+            histText.setString(histStr);
+            window.draw(histText);
         }
 
         window.display();
