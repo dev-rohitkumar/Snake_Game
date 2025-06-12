@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp> // <-- Add this
 #include <vector>
 #include <cstdlib>
 #include <ctime>
@@ -118,6 +119,14 @@ int main() {
     sf::RenderWindow window(sf::VideoMode(width, height), "Snake Game");
     int baseSpeed = 5;
 
+    // --- Add this block for music ---
+    sf::Music music;
+    if (music.openFromFile("../resources/background.ogg")) {
+        music.setLoop(true);
+        music.play();
+    }
+    // --- End music block ---
+
     Snake snake;
     sf::Vector2i food = generateFoodPosition(snake);
 
@@ -169,6 +178,24 @@ int main() {
 
     GameState state = MENU;
 
+    // --- Add sound buffer and sound for food spawn ---
+    sf::SoundBuffer spawnBuffer;
+    if (!spawnBuffer.loadFromFile("../resources/spawn.wav")) {
+        // Handle error if needed
+    }
+    sf::Sound spawnSound;
+    spawnSound.setBuffer(spawnBuffer);
+    // --- End spawn sound addition ---
+
+    // --- Add sound buffer and sound for eating ---
+    sf::SoundBuffer eatBuffer;
+    if (!eatBuffer.loadFromFile("../resources/eat.wav")) {
+        // Handle error if needed
+    }
+    sf::Sound eatSound;
+    eatSound.setBuffer(eatBuffer);
+    // --- End eating sound addition ---
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -181,6 +208,7 @@ int main() {
                 food = generateFoodPosition(snake);
                 score = 0;
                 state = PLAYING;
+                spawnSound.play(); // Play spawn sound at game start
             }
             else if (state == PLAYING && event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::Up && snake.dir != Down) snake.dir = Up;
@@ -218,6 +246,8 @@ int main() {
                     snake.grow();
                     food = generateFoodPosition(snake);
                     score++;
+                    eatSound.play(); // Play eating sound
+                    spawnSound.play(); // Play spawn sound
                 }
                 if (snake.checkCollision()) {
                     if (score > highScore) highScore = score;
