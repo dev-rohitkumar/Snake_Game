@@ -14,6 +14,7 @@
                 "-lsfml-graphics",
                 "-lsfml-window",
                 "-lsfml-system",
+                "-lsfml-audio",
                 "-o",
                 "D:\\Mastering_in_DSA\\Game\\bin\\SnakeGame.exe"
             ],
