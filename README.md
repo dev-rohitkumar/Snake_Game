@@ -1,4 +1,9 @@
-🐍 <b>Serpent Rush</b> – A Modern Take on the Classic Snake Game
+<h1>🐍 <b>Serpent Rush</b> </h1>
+<h2> A Modern Take on the Classic Snake Game </h2>
+
+![Gameplay Preview1](resources/Gameplay_Preview1.png) <br>
+![Gameplay Preview2](resources/Gameplay_Preview2.png)
+
 Reviving the nostalgic Snake game with sleek visuals, intuitive controls, and enhanced gameplay! Built using C++ and SFML, it delivers a fast-paced experience with dynamic movement, score tracking, and immersive sound effects.
 🚀 Get ready to slither your way to victory!
 
@@ -35,26 +40,7 @@ Reviving the nostalgic Snake game with sleek visuals, intuitive controls, and en
 
 <b>2️⃣ Project Structure</b>
 
-SerpentRush/
-├── .vscode
-|   ├── c_cpp_properties.json
-|   ├── settings.json
-|   ├── tasks.json
-├── bin
-|   ├── SnakeGame.exe
-├── resources/
-│   ├── background.ogg
-│   ├── spawn.wav
-│   ├── eat.wav
-│   ├── apple.png    
-├── SFML-2.6.1
-|   ├── build
-|   |   ├── bin
-|   |   ├── lib
-|   ├── include 
-├── snake.cpp
-└── README.md
-
+![Project Structure](resources/Screenshot1.png)
 
 
 3️⃣ <b>Build & Run</b>

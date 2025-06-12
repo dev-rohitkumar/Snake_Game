@@ -246,17 +246,7 @@ int main() {
         );
     }
 
-    // --- Snake image ---
-    sf::Texture snakeTexture;
-    bool snakeImgLoaded = snakeTexture.loadFromFile("../resources/snake.png");
-    sf::Sprite snakeSprite;
-    if (snakeImgLoaded) {
-        snakeSprite.setTexture(snakeTexture);
-        snakeSprite.setScale(
-            (blockSize - 2) / static_cast<float>(snakeTexture.getSize().x),
-            (blockSize - 2) / static_cast<float>(snakeTexture.getSize().y)
-        );
-    }
+ 
 
     Snake snake;
     sf::Vector2i food = generateFoodPosition(snake);
@@ -419,14 +409,9 @@ int main() {
             }
             // Draw snake
             for (const auto& segment : snake.body) {
-                if (snakeImgLoaded) {
-                    snakeSprite.setPosition(segment.x * blockSize, segment.y * blockSize);
-                    window.draw(snakeSprite);
-                } else {
-                    block.setPosition(segment.x * blockSize, segment.y * blockSize);
-                    window.draw(block);
-                }
-            }
+    block.setPosition(segment.x * blockSize, segment.y * blockSize);
+    window.draw(block);
+}
             // Draw food
             if (appleImgLoaded) {
                 appleSprite.setPosition(food.x * blockSize, food.y * blockSize);
