@@ -4,6 +4,10 @@
 #include <cstdlib>
 #include <ctime>
 #include <stack>
+#include <string>
+#include <fstream>
+
+using namespace std;
 
 const int blockSize = 20;
 const int width = 800;
@@ -21,7 +25,7 @@ enum GameState { MENU, PLAYING, PAUSED, GAMEOVER, HIGHSCORES };
 // --- Snake class ---
 class Snake {
 public:
-    std::vector<SnakeSegment> body;
+    vector<SnakeSegment> body;
     Direction dir;
 
     Snake() {
@@ -67,7 +71,7 @@ public:
 // --- Wall grid and setup ---
 const int gridCols = width / blockSize;
 const int gridRows = height / blockSize;
-std::vector<std::vector<bool>> wallGrid(gridRows, std::vector<bool>(gridCols, false));
+vector<vector<bool>> wallGrid(gridRows, vector<bool>(gridCols, false));
 
 void setupWalls() {
     for (int i = 0; i < gridCols; ++i) {
@@ -105,6 +109,31 @@ sf::Vector2i generateFoodPosition(const Snake& snake) {
 // --- Button hover helper ---
 bool isMouseOver(const sf::RectangleShape& rect, sf::Vector2f mousePos) {
     return rect.getGlobalBounds().contains(mousePos);
+}
+
+// --- Simple local persistence for scores ---
+static const char* SCORE_FILE = "scores.txt";
+
+void loadScores(stack<int>& history, int& highScore) {
+    ifstream in(SCORE_FILE);
+    if (!in.is_open()) return;
+    int hs;
+    if (!(in >> hs)) return;
+    highScore = hs;
+    vector<int> items;
+    int s;
+    while (in >> s) items.push_back(s);
+    for (int v : items) history.push(v);
+}
+
+void saveScores(const stack<int>& history, int highScore) {
+    ofstream out(SCORE_FILE, ios::trunc);
+    if (!out.is_open()) return;
+    out << highScore << '\n';
+    stack<int> temp = history;
+    vector<int> v;
+    while (!temp.empty()) { v.push_back(temp.top()); temp.pop(); }
+    for (auto it = v.rbegin(); it != v.rend(); ++it) out << *it << '\n';
 }
 
 int main() {
@@ -212,7 +241,9 @@ int main() {
 
     int score = 0;
     int highScore = 0;
-    std::stack<int> scoreHistory;
+    stack<int> scoreHistory;
+    // Load persisted scores
+    loadScores(scoreHistory, highScore);
     sf::Text scoreText;
     scoreText.setFont(font);
     scoreText.setCharacterSize(28);
@@ -330,6 +361,7 @@ int main() {
             if (nextHead.x < 0 || nextHead.y < 0 || nextHead.x >= width / blockSize || nextHead.y >= height / blockSize || wallGrid[nextHead.y][nextHead.x]) {
                 if (score > highScore) highScore = score;
                 scoreHistory.push(score);
+                saveScores(scoreHistory, highScore);
                 state = GAMEOVER;
             } else {
                 snake.move();
@@ -343,6 +375,7 @@ int main() {
                 if (snake.checkCollision()) {
                     if (score > highScore) highScore = score;
                     scoreHistory.push(score);
+                    saveScores(scoreHistory, highScore);
                     state = GAMEOVER;
                 }
             }
@@ -382,11 +415,11 @@ int main() {
             histText.setStyle(sf::Text::Bold);
             histText.setPosition(width / 2.f - 80, 160);
 
-            std::stack<int> temp = scoreHistory;
-            std::string histStr = "";
+            stack<int> temp = scoreHistory;
+            string histStr = "";
             int count = 0;
             while (!temp.empty() && count < 5) {
-                histStr += std::to_string(temp.top()) + "\n";
+                histStr += to_string(temp.top()) + "\n";
                 temp.pop();
                 count++;
             }
@@ -422,7 +455,7 @@ int main() {
             }
 
             // --- Centered score and high score with boundary ---
-            std::string scoreStr = "Score: " + std::to_string(score) + "   High Score: " + std::to_string(highScore);
+            string scoreStr = "Score: " + to_string(score) + "   High Score: " + to_string(highScore);
             scoreText.setString(scoreStr);
 
             sf::FloatRect textRect = scoreText.getLocalBounds();
@@ -454,11 +487,11 @@ int main() {
             histText.setFillColor(sf::Color::Black); // Changed to black
             histText.setPosition(width / 2.f - 100, height / 2.f + 50);
 
-            std::stack<int> temp = scoreHistory;
-            std::string histStr = "Last Scores:\n";
+            stack<int> temp = scoreHistory;
+            string histStr = "Last Scores:\n";
             int count = 0;
             while (!temp.empty() && count < 5) {
-                histStr += std::to_string(temp.top()) + "\n";
+                histStr += to_string(temp.top()) + "\n";
                 temp.pop();
                 count++;
             }
